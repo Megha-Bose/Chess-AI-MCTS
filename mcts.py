@@ -6,6 +6,27 @@ Example: s1
 First char: w: white, b: black, e: empty
 Second char: k: king, q: queen, b: bishop, n: knight, r: rook, p: pawn
 '''
+# board dimension
+N = 8
+# no. of type of pieces
+M = 6
+pieces = ['k', 'q', 'r', 'b', 'n', 'p']
+white_codes = ['\u2654', '\u2655', '\u2656', '\u2657', '\u2658', '\u2659']
+black_codes = ['\u265A', '\u265B', '\u265C', '\u265D', '\u265E', '\u265F']
+w = {pieces[i]: white_codes[i] for i in range(M)}
+b = {pieces[i]: black_codes[i] for i in range(M)}
+
+
+start_state = [
+    [b['r'], b['n'], b['b'], b['q'], b['k'], b['b'], b['n'], b['r']],
+    [b['p'], b['p'], b['p'], b['p'], b['p'], b['p'], b['p'], b['p']],
+    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
+    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
+    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
+    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
+    [w['p'], w['p'], w['p'], w['p'], w['p'], w['p'], w['p'], w['p']],
+    [w['r'], w['n'], w['b'], w['q'], w['k'], w['b'], w['n'], w['r']],
+]
 
 s1 = [
     ['bk', 'em', 'em', 'em', 'em', 'em', 'em', 'em'],
@@ -19,6 +40,8 @@ s1 = [
 ]
 
 # MCTS class
+
+
 class MctsNode():
 
     def __init__(self, state, parent=None, parent_action=None):
@@ -39,14 +62,14 @@ class MctsNode():
         Returns expected reward from a node,i.e., q value
         '''
         return self._num_wins - self._num_losses
-    
+
     def get_n(self):
         '''
         Returns number of visits to a node till now
         '''
         return self._num_visits
 
-    def expand(self):	
+    def expand(self):
         '''
         Returns new state expanded from current 
         state after taking a possible action
@@ -66,8 +89,8 @@ class MctsNode():
             if self._available_actions and len(self._available_actions) == 0:
                 curr = curr.best_child()
             else:
-                return curr.expand() # expandable node
-        return curr # terminal node
+                return curr.expand()  # expandable node
+        return curr  # terminal node
 
     def simulate(self):
         '''
@@ -106,7 +129,8 @@ class MctsNode():
         '''
         Returns child with maximum value
         '''
-        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 * np.log(self.get_n()) / child.get_n())) for child in self.children]
+        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 *
+                                                                        np.log(self.get_n()) / child.get_n())) for child in self.children]
         best_c = np.argmax(weights)
         return self.children[best_c]
 
@@ -156,7 +180,7 @@ if __name__ == "__main__":
     gameplay
     '''
     current_state = s1
-    root = MctsNode(state = current_state)
+    root = MctsNode(state=current_state)
     selected_node = root.get_best_move()
 
 
