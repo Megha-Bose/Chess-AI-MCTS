@@ -106,7 +106,7 @@ class MctsNode():
         '''
         Returns child with maximum value
         '''
-        weights = [(child.q() / child.n()) + c_param * np.sqrt((2 * np.log(self.n()) / child.n())) for child in self.children]
+        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 * np.log(self.get_n()) / child.get_n())) for child in self.children]
         best_c = np.argmax(weights)
         return self.children[best_c]
 
