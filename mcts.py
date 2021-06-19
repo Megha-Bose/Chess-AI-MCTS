@@ -110,10 +110,6 @@ class MctsNode():
         best_c = np.argmax(weights)
         return self.children[best_c]
 
-    ''' ortho & diag safety'''
-
-    ''' king check & is_checkmate '''
-
     def is_game_over(self):
         global chess_game
         '''
@@ -132,9 +128,9 @@ class MctsNode():
             for j in range(N):
                 # considering the pieces whose turn is valid
                 if self.state[i][j][0] == self.turn:
-
-                    pass
-        actions_list = None
+                    actions_list = chess_game.possible_moves(
+                        state=self.state, i=i, j=j)
+        print(actions_list)
         return actions_list
 
     def move(self, action):

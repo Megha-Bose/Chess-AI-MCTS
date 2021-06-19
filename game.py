@@ -208,15 +208,63 @@ class Game:
             for i_coord in x:
                 for j_coord in y:
                     if x in Range and y in Range:
-                        if state[x][y] == 'em':
-                            if self.is_king_check(state, x, y, opponent) == False:
+                        if state[i_coord][j_coord] == 'em':
+                            if self.is_king_check(state, i_coord, j_coord, opponent) == False:
                                 res = False
                                 break
         return res
 
+    def get_actions_list(self, state, i, j, possible):
+        color = state[i][j][0]
+        piece = state[i][j][1]
+
+        actions_list = []
+        for element in possible:
+            check = state[element[0]][element[1]
+                                      ][0] != color and state[element[0]][element[1]][1] != 'k'
+            if check == False:
+                continue
+
+            # 'check' is true only when cell at element coord is
+            # not same color and not king
+
+            # if gap is empty
+            if i < element[0]:
+                step_i = 1
+            elif i > element[0]:
+                step_i = -1
+            else:
+                step_i = 0
+
+            if j < element[1]:
+                step_j = 1
+            elif j > element[1]:
+                step_j = -1
+            else:
+                step_j = 0
+
+            i_coord = i+step_i
+            j_coord = j+step_j
+
+            path = True
+            while i_coord != element[0] or j_coord != element[1]:
+                if state[i_coord][j_coord] != 'em':
+                    path = False
+                    break
+                i_coord += step_i
+                j_coord += step_j
+            if path == True:
+                actions_list.append((i, j, element[0], element[1]))
+
     def possible_moves(self, state, i, j):
         color = state[i][j][0]
         piece = state[i][j][1]
+
+        for i_coord in range(N):
+            for j_coord in range(N):
+                if state[i_coord][j_coord][0] == color and state[i_coord][j_coord][1] == 'k':
+                    king_i = i_coord
+                    king_j = j_coord
 
         # action_list - list of actions represented by
         # 4-value tuple elements - (x, y, x', y')
@@ -225,11 +273,13 @@ class Game:
 
         if self.is_king_check(state, king_i, king_j, opponent):
             if self.is_checkmate(state):
+                print('CHECKMATE')
                 return None
             else:
                 # handle check by blocking/dodging
                 pass
         if piece == 'k':
+            # king
             # check adjacent squares
             x = [i-1, i, i+1]
             y = [j-1, j, j+1]
@@ -238,21 +288,82 @@ class Game:
 
             for i_coord in x:
                 for j_coord in y:
-                    if x in Range and y in Range:
-                        if state[x][y] == 'em' and self.is_king_check(state, x, y, opponent) == False:
-                            actions_list.append((i, j, x, y))
-
+                    '''print(i_coord, end=' ')
+                    print(j_coord)'''
+                    if i_coord in Range and j_coord in Range:
+                        if state[i_coord][j_coord][0] != color and self.is_king_check(state, i_coord, j_coord, opponent) == False:
+                            if i_coord != i and j_coord != j:
+                                actions_list.append((i, j, i_coord, j_coord))
         if piece == 'q':
-            pass
+            # queen
+            # check orthogonal & diagonal squares
+            Range = [i for i in range(N)]
+            possible = []
+            # horizontal
+            for j_coord in Range:
+                if j_coord != j:
+                    possible.append((i, j_coord))
+            # vertical
+            for i_coord in Range:
+                if i_coord != i:
+                    possible.append((i_coord, j))
+            # diagonal
+            step_list = [1, -1]
+            for i_step in step_list:
+                for j_step in step_list:
+                    i_coord = i + i_step
+                    j_coord = j + j_step
+                    while i_coord in Range and j_coord in Range:
+                        possible.append((i_coord, j_coord))
+
+                        i_coord += i_step
+                        j_coord += j_step
+            result = self.get_actions_list(state, i, j, possible)
+            if result != None:
+                for element in result:
+                    actions_list.append(element)
 
         if piece == 'r':
-            pass
+            # check orthogonal & diagonal squares
+            Range = [i for i in range(N)]
+            possible = []
+            # horizontal
+            for j_coord in Range:
+                if j_coord != j:
+                    possible.append((i, j_coord))
+            # vertical
+            for i_coord in Range:
+                if i_coord != i:
+                    possible.append((i_coord, j))
+            # print(possible)
+            result = self.get_actions_list(state, i, j, possible)
+
+            if result != None:
+                for element in result:
+                    actions_list.append(element)
 
         if piece == 'b':
-            pass
+            # bishop
+            # diagonal
+            step_list = [1, -1]
+            for i_step in step_list:
+                for j_step in step_list:
+                    i_coord = i + i_step
+                    j_coord = j + j_step
+                    while i_coord in Range and j_coord in Range:
+                        possible.append((i_coord, j_coord))
+
+                        i_coord += i_step
+                        j_coord += j_step
+            result = self.get_actions_list(state, i, j, possible)
+            if result != None:
+                for element in result:
+                    actions_list.append(element)
 
         if piece == 'n':
             pass
 
         if piece == 'p':
             pass
+
+        return actions_list
