@@ -1,59 +1,27 @@
 import numpy as np
-
-'''
-Each board state is a 8x8 array
-Example: s1
-First char: w: white, b: black, e: empty
-Second char: k: king, q: queen, b: bishop, n: knight, r: rook, p: pawn
-'''
-# board dimension
-N = 8
-# no. of type of pieces
-M = 6
-pieces = ['k', 'q', 'r', 'b', 'n', 'p']
-white_codes = ['\u2654', '\u2655', '\u2656', '\u2657', '\u2658', '\u2659']
-black_codes = ['\u265A', '\u265B', '\u265C', '\u265D', '\u265E', '\u265F']
-w = {pieces[i]: white_codes[i] for i in range(M)}
-b = {pieces[i]: black_codes[i] for i in range(M)}
-
-
-start_state = [
-    [b['r'], b['n'], b['b'], b['q'], b['k'], b['b'], b['n'], b['r']],
-    [b['p'], b['p'], b['p'], b['p'], b['p'], b['p'], b['p'], b['p']],
-    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
-    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
-    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
-    ['    ', '    ', '    ', '    ', '    ', '    ', '    ', '    '],
-    [w['p'], w['p'], w['p'], w['p'], w['p'], w['p'], w['p'], w['p']],
-    [w['r'], w['n'], w['b'], w['q'], w['k'], w['b'], w['n'], w['r']],
-]
-
-s1 = [
-    ['bk', 'em', 'em', 'em', 'em', 'em', 'em', 'em'],
-    ['em', 'bn', 'em', 'wr', 'em', 'wp', 'em', 'em'],
-    ['br', 'em', 'bp', 'em', 'em', 'bn', 'wn', 'em'],
-    ['em', 'em', 'bp', 'bp', 'bp', 'em', 'wp', 'bp'],
-    ['bp', 'bp', 'em', 'bp', 'wn', 'em', 'wp', 'em'],
-    ['em', 'em', 'em', 'em', 'em', 'em', 'em', 'em'],
-    ['em', 'em', 'em', 'wk', 'em', 'em', 'em', 'em'],
-    ['em', 'em', 'em', 'em', 'em', 'em', 'em', 'em'],
-]
+from game import (Game, N, M, pieces)
 
 # MCTS class
 
 
 class MctsNode():
-
-    def __init__(self, color, iterations, state, parent=None, parent_action=None):
+    def __init__(self, state, parent=None, parent_action=None, turn=None):
         '''
         Initialise a board state
         '''
-        self.color = color
-        self.opponent_color = 'black' if self.color == 'white' else 'white'
-        self.iterations = iterations
 
         self.state = state
         self.parent = parent
+
+        '''
+        white or black turn
+        '''
+
+        if parent == None:
+            self.turn = 'w'
+        else:
+            self.turn = 'b' if parent.turn == 'w' else 'w'
+
         self.parent_action = parent_action
         self.children = []
         self._num_visits = 0
@@ -142,170 +110,30 @@ class MctsNode():
         best_c = np.argmax(weights)
         return self.children[best_c]
 
-    def orthogonal_safety(self, i1, j1, i2, j2):
-        if i1 == i2:
-            safe = False
-            '''
-            if i coords match, check j coords for intermediate empty cells
-            '''
-            max = j1 if j1 > j2 else j2
-            min = j2 if max == j1 else j1
-            for j_coord in range(min+1, max-1):
-                if self.state[i1][j_coord] != 'em':
-                    safe = True
-                    break
-            return safe
-        elif j1 == j2:
-            safe = False
-            '''
-            if j coords match, check i coords for intermediate empty cells
-            '''
-            max = i1 if i1 > i2 else i2
-            min = i2 if max == i1 else i1
-            for i_coord in range(min+1, max-1):
-                if self.state[i_coord][j1] != 'em':
-                    safe = True
-                    break
-            return safe
-        else:
-            return True
+    ''' ortho & diag safety'''
 
-    def diagonal_safety(self, i1, j1, i2, j2):
-        if i1 == i2 or j1 == j2:
-            return True
-        else:
-            slope = abs((i1-i2)/(j1-j2))
-            if slope == 1:
-                safe = False
-                ''' right orientation, check for intermediate empty cells
-                '''
-                step_i = 1 if i1 < i2 else -1
-                step_j = 1 if j1 < j2 else -1
-
-                for i_coord in range(i1, i2, step_i):
-                    for j_coord in range(j1, j2, step_j):
-                        if i_coord not in [i1, i2] and j_coord not in [j1, j2]:
-                            if self.state[i_coord][j_coord] != 'em':
-                                safe = True
-                                break
-                return safe
-            else:
-                return True
-
-    def is_king_check(self, king_i, king_j, opponent=False):
-        '''
-        if opponent=True, opponent king check is computed
-        else computer's king
-        '''
-        king_color = self.color[0] if opponent == False else self.opponent_color[0]
-        opponent_color = 'w' if king_color == 'b' else 'b'
-        for i in range(N):
-            for j in range(N):
-                '''
-                check each opponent piece's position w.r.t to computer's king
-                or vice versa, depending on opponent value passed
-                '''
-                if self.state[i][j][0] == opponent_color:
-                    piece_type = self[i][j][1]
-                    ''' condition for kings to be adjacent
-                    '''
-                    if piece_type == 'k':
-                        if abs(king_i-i) == 1 and abs(king_j-j) == 1:
-                            return True
-
-                    elif piece_type == 'q':
-                        '''
-                        queen search - orthogonal and diagonal
-                        '''
-                        if self.orthogonal_safety(king_i, king_j, i, j) == False:
-                            return True
-                        if self.diagonal_safety(king_i, king_j, i, j) == False:
-                            return True
-
-                    elif piece_type == 'r':
-                        '''
-                        rook search - orthogonal
-                        '''
-                        if self.orthogonal_safety(king_i, king_j, i, j) == False:
-                            return True
-
-                    elif piece_type == 'b':
-                        '''
-                        bishop search - diagonal
-                        '''
-                        if self.diagonal_safety(king_i, king_j, i, j) == False:
-                            return True
-
-                    elif piece_type == 'n':
-                        '''
-                        knight search - L-shaped hop
-                        '''
-                        if abs(king_i - i) == 2 and abs(king_j - j) == 1:
-                            return True
-                        elif abs(king_i - i) == 1 and abs(king_j - j) == 2:
-                            return True
-
-                    elif piece_type == 'p':
-                        '''
-                        pawn search - 1-step diagonal in forward direction
-                        i value condition depends on color
-                        '''
-                        if king_color == 'w':
-                            if (king_i - i) == 1 and abs(king_j - j) == 1:
-                                return True
-                        else:
-                            if (king_i - i) == -1 and abs(king_j - j) == 1:
-                                return True
-
-    def is_checkmate(self, opponent=False):
-        res = False
-        '''finding king's position - king_i, king_j'''
-
-        ''' king color depends on opponent value passed'''
-        king = self.color[0] + \
-            'k' if opponent == False else self.opponent_color[0]+'k'
-        for king_i in range(N):
-            if king in self.state[king_i]:
-                king_j = self.state[king_i].index(king)
-
-        if self.is_king_check(king_i, king_j, opponent):
-            res = True
-            '''
-            check for king blocking/dodging check
-            (yet to implement blocking check through intercept & capture)
-            '''
-
-            '''
-            check for all adjacent squares
-            with x and y generating index range
-            '''
-            x = [king_i-1, king_j-1]
-            y = [king_i+1, king_j+1]
-
-            Range = [i for i in range(N)]
-
-            for i_coord in x:
-                for j_coord in y:
-                    if x in Range and y in Range:
-                        if self.state[x][y] != 'em':
-                            if self.is_king_check(x, y, opponent) == False:
-                                res = False
-                                break
-        return res
+    ''' king check & is_checkmate '''
 
     def is_game_over(self):
+        global chess_game
         '''
         Returns true if game is over else false
         check if either kings is in checkmate position
         '''
-        result = self.is_checkmate(
-            opponent=False) or self.is_checkmate(opponent=True)
+        result = chess_game.is_checkmate(
+            self.state, opponent=False) or chess_game.is_checkmate(self.state, opponent=True)
         return result
 
     def get_available_actions(self):
         '''
         Returns list of all possible actions from current board state
         '''
+        for i in range(N):
+            for j in range(N):
+                # considering the pieces whose turn is valid
+                if self.state[i][j][0] == self.turn:
+
+                    pass
         actions_list = None
         return actions_list
 
@@ -325,22 +153,25 @@ class MctsNode():
         return res
 
     def get_best_move(self):
+        global chess_game
         '''
         Play the best move from current state
         '''
-        for i in range(self.iterations):
+        for i in range(chess_game.game_info['ITERATIONS']):
             node = self.select()
             q_val = node.simulate()
             node.backpropagate(q_val)
         return self.best_child(c_param=0.0)
 
 
+chess_game = Game()
+
 if __name__ == "__main__":
     '''
     gameplay
     '''
-    current_state = s1
-    root = MctsNode(color='white', iterations=100, state=current_state)
+    #current_state = s1
+    root = MctsNode(state=chess_game.game_info['START STATE'])
     selected_node = root.get_best_move()
 
 
