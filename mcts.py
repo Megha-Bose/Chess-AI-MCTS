@@ -1,8 +1,10 @@
 import numpy as np
 from game import (Game, N, M, pieces)
 
-# MCTS class
+root = None
+chess_game = Game()
 
+# MCTS class
 
 class MctsNode():
     def __init__(self, state, parent=None, parent_action=None, turn=None):
@@ -18,9 +20,9 @@ class MctsNode():
         '''
 
         if parent == None:
-            self.turn = 'w'
+            self.turn = 'b'
         else:
-            self.turn = 'b' if parent.turn == 'w' else 'w'
+            self.turn = 'w' if parent.turn == 'b' else 'b'
 
         self.parent_action = parent_action
         self.children = []
@@ -76,7 +78,7 @@ class MctsNode():
         # we use rollout policy here
         curr = self
         while not curr.is_game_over():
-            possible_moves = curr.get_actions()
+            possible_moves = curr.get_available_actions()
             chosen_move = np.random.randint(len(possible_moves))
             curr = curr.move(possible_moves[chosen_move])
         return curr.get_result()
@@ -105,8 +107,7 @@ class MctsNode():
         '''
         Returns child with maximum value
         '''
-        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 *
-                                                                        np.log(self.get_n()) / child.get_n())) for child in self.children]
+        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 * np.log(self.get_n()) / child.get_n())) for child in self.children]
         best_c = np.argmax(weights)
         return self.children[best_c]
 
@@ -116,11 +117,11 @@ class MctsNode():
         Returns true if game is over else false
         check if either kings is in checkmate position
         '''
-        result = chess_game.is_checkmate(
-            self.state, opponent=False) or chess_game.is_checkmate(self.state, opponent=True)
+        result = chess_game.is_checkmate(self.state, opponent=False) or chess_game.is_checkmate(self.state, opponent=True)
         return result
 
     def get_available_actions(self):
+        global chess_game
         '''
         Returns list of all possible actions from current board state
         '''
@@ -128,8 +129,7 @@ class MctsNode():
             for j in range(N):
                 # considering the pieces whose turn is valid
                 if self.state[i][j][0] == self.turn:
-                    actions_list = chess_game.possible_moves(
-                        state=self.state, i=i, j=j)
+                    actions_list = chess_game.possible_moves(state=self.state, i=i, j=j)
         print(actions_list)
         return actions_list
 
@@ -148,49 +148,22 @@ class MctsNode():
         res = 1
         return res
 
-    def get_best_move(self):
+    def get_best_move(self, num_iter):
         global chess_game
         '''
         Play the best move from current state
         '''
-        for i in range(chess_game.game_info['ITERATIONS']):
+        for i in range(num_iter):
             node = self.select()
-            q_val = node.simulate()
-            node.backpropagate(q_val)
+            result = node.simulate()
+            node.backpropagate(result)
         return self.best_child(c_param=0.0)
 
 
-chess_game = Game()
-
-if __name__ == "__main__":
+def run_mcts(root_state, num_iter):
     '''
     gameplay
     '''
-    #current_state = s1
-    root = MctsNode(state=chess_game.game_info['START STATE'])
-    selected_node = root.get_best_move()
-
-
-# To convert board state to FEN
-# import io
-
-# def board_to_fen(board):
-#     with io.StringIO() as s:
-#         for row in board:
-#             empty = 0
-#             for cell in row:
-#                 c = cell[0]
-#                 if c in ('w', 'b'):
-#                     if empty > 0:
-#                         s.write(str(empty))
-#                         empty = 0
-#                     s.write(cell[1].upper() if c == 'w' else cell[1].lower())
-#                 else:
-#                     empty += 1
-#             if empty > 0:
-#                 s.write(str(empty))
-#             s.write('/')
-#         # Moving one position back to overwrite '/'
-#         s.seek(s.tell() - 1)
-#         s.write(' w KQkq - 0 1')
-#         return s.getvalue()
+    global root
+    root = MctsNode(state=root_state)
+    return root.get_best_move(num_iter)
