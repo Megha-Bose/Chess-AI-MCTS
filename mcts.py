@@ -1,28 +1,20 @@
+import chess
 import numpy as np
-from game import (Game, N, M, pieces)
 
 root = None
-chess_game = Game()
 
 # MCTS class
 
+
 class MctsNode():
-    def __init__(self, state, parent=None, parent_action=None, turn=None):
+    def __init__(self, state, parent=None, parent_action=None):
         '''
         Initialise a board state
         '''
 
         self.state = state
+        self.board = chess.Board(state)
         self.parent = parent
-
-        '''
-        white or black turn
-        '''
-
-        if parent == None:
-            self.turn = 'b'
-        else:
-            self.turn = 'w' if parent.turn == 'b' else 'b'
 
         self.parent_action = parent_action
         self.children = []
@@ -30,10 +22,6 @@ class MctsNode():
         self._num_wins = 0
         self._num_losses = 0
         self._available_actions = self.get_available_actions()
-
-        # king and opponent king safety status for check and checkmate
-        self.king_status = []
-        self.opponent_king_status = []
 
     def get_q(self):
         '''
@@ -76,11 +64,15 @@ class MctsNode():
         till an outcome is returned
         '''
         # we use rollout policy here
+
         curr = self
+
         while not curr.is_game_over():
             possible_moves = curr.get_available_actions()
             chosen_move = np.random.randint(len(possible_moves))
-            curr = curr.move(possible_moves[chosen_move])
+            new_board = curr.move(possible_moves[chosen_move])
+            curr = MctsNode(state=new_board, parent=curr,
+                            parent_action=chosen_move)
         return curr.get_result()
 
     def backpropagate(self, result):
@@ -107,57 +99,53 @@ class MctsNode():
         '''
         Returns child with maximum value
         '''
-        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 * np.log(self.get_n()) / child.get_n())) for child in self.children]
+        weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 *
+                                                                        np.log(self.get_n()) / child.get_n())) for child in self.children]
         best_c = np.argmax(weights)
         return self.children[best_c]
 
     def is_game_over(self):
-        global chess_game
-        '''
-        Returns true if game is over else false
-        check if either kings is in checkmate position
-        '''
-        result = chess_game.is_checkmate(self.state, opponent=False) or chess_game.is_checkmate(self.state, opponent=True)
+        result = (self.board.is_checkmate() or self.board.is_stalemate(
+        ) or self.board.is_seventyfive_moves() or self.board.is_fivefold_repetition() or self.board.is_insufficient_material())
         return result
 
     def get_available_actions(self):
-        global chess_game
-        '''
-        Returns list of all possible actions from current board state
-        '''
-        for i in range(N):
-            for j in range(N):
-                # considering the pieces whose turn is valid
-                if self.state[i][j][0] == self.turn:
-                    actions_list = chess_game.possible_moves(state=self.state, i=i, j=j)
-        print(actions_list)
+        actions_list = list(self.board.legal_moves)
         return actions_list
 
     def move(self, action):
         '''
         Returns board state after action
         '''
-        next_state = None
-        return next_state
+        next_state = self.board.copy()
+        next_state.push(action)
+        return next_state.fen()
 
     def get_result(self):
         '''
         Returns result of the game
         1 for win, -1 for loss, and 0 for tie
         '''
-        res = 1
+        '''
+        hardcoded white to human, black to computer
+        '''
+        if self.board.outcome().winner == chess.WHITE:
+            res = -1
+        elif self.board.outcome().winner == chess.BLACK:
+            res = 1
+        elif self.board.outcome().winner == None:
+            res = 0
         return res
 
     def get_best_move(self, num_iter):
-        global chess_game
         '''
         Play the best move from current state
         '''
-        for i in range(num_iter):
+        for i in range(int(num_iter)):
             node = self.select()
             result = node.simulate()
             node.backpropagate(result)
-        return self.best_child(c_param=0.0)
+        return self.best_child(c_param=0.0).parent_action
 
 
 def run_mcts(root_state, num_iter):
