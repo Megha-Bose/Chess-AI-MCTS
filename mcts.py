@@ -160,6 +160,7 @@ def run_mcts(root_state, num_iter):
     gameplay
     '''
     global root
+    print(num_iter)
     root = MctsNode(state=root_state)
     if root.is_game_over():
         return root
