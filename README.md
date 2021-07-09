@@ -5,5 +5,5 @@ Chess AI implementation using Monte Carlo Tree Search
 - `python3 app.py`
 - Go to `http://127.0.0.1:5000/`
 
-Install flask by - `pip install flask`
-Install python-chess by - `pip install chess`
+Install flask by - `pip install flask`,
+ install python-chess by - `pip install chess`
