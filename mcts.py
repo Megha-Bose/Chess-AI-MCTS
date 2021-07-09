@@ -16,6 +16,11 @@ class MctsNode():
         self.board = chess.Board(state)
         self.parent = parent
 
+        if self.parent and self.parent.board.turn == chess.BLACK:
+            self.board.turn = chess.WHITE
+        else:
+            self.board.turn = chess.BLACK
+
         self.parent_action = parent_action
         self.children = []
         self._num_visits = 0
@@ -52,7 +57,7 @@ class MctsNode():
         '''
         curr = self
         while not curr.is_terminal():
-            if self._available_actions and len(self._available_actions) == 0:
+            if len(curr._available_actions) == 0:
                 curr = curr.best_child()
             else:
                 return curr.expand()  # expandable node
@@ -99,6 +104,7 @@ class MctsNode():
         '''
         Returns child with maximum value
         '''
+        # print(len(self.children))
         weights = [(child.get_q() / child.get_n()) + c_param * np.sqrt((2 *
                                                                         np.log(self.get_n()) / child.get_n())) for child in self.children]
         best_c = np.argmax(weights)
@@ -145,6 +151,7 @@ class MctsNode():
             node = self.select()
             result = node.simulate()
             node.backpropagate(result)
+        # print(len(self.children))
         return self.best_child(c_param=0.0).parent_action
 
 
@@ -154,4 +161,6 @@ def run_mcts(root_state, num_iter):
     '''
     global root
     root = MctsNode(state=root_state)
+    if root.is_game_over():
+        return root
     return root.get_best_move(num_iter)

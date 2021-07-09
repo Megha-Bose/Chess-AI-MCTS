@@ -11,12 +11,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     return render_template('index.html')
-
-# @app.route('/new_game')
-# def new_game():
-#     board = Chess()
-#     return jsonify({'board': str(board.fen())})
-
+    
 
 @app.route('/best_mcts_move', methods=['POST'])
 def best_mcts_move():
