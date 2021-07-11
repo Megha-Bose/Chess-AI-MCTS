@@ -64,6 +64,7 @@
         fenEl = $('#fen'),
         pgnEl = $('#pgn');
         var num_iter = document.getElementById("iterations").value;  
+        var moveColor = 'White';
         
         var onDragStart = function(source, piece, position, orientation) 
         {
@@ -72,41 +73,16 @@
                 return false;
             }
         }
-        
-        var updateStatus = function() 
-        {
+
+        var updateStatus = function() {
+            console.log("updating status text", game.turn())
             var status = '';
             
-            var moveColor = 'White';
             if (game.turn() === 'b') {
                 moveColor = 'Black';
             }
             if (game.turn() === 'w') {
                 moveColor = 'White'
-            }
-            
-            if (moveColor === 'Black') 
-            {
-                console.log(game.fen());
-                console.log(num_iter);
-                board.draggable = false
-                $.ajax({
-                    type: "POST",
-                    async: true,
-                    url: "/best_mcts_move",
-                    contentType: "application/json",
-                    data: JSON.stringify({
-                        board: game.fen(),
-                        iterations: num_iter
-                    }), 
-                    success: function(data) {
-                        game = new Chess(data.board);
-                        board.draggable = true;
-                        board.position(game.fen())
-                        console.log(data);
-                    },
-                    dataType: "json"
-                });
             }
             
             // check checkmate
@@ -129,6 +105,34 @@
             statusEl.html(status);
             fenEl.html(game.fen());
             pgnEl.html(game.pgn());
+        }
+        
+        var makeMCTSMove = function() 
+        {
+            if (game.turn() === 'b') {
+                console.log(game.fen());
+                console.log(num_iter);
+                $.ajax({
+                    type: "POST",
+                    async: false,
+                    url: "/best_mcts_move",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        board: game.fen(),
+                        iterations: num_iter
+                    }), 
+                    success: function(data) {
+                        console.log(data)
+                        game.move(data.move, { sloppy: true })
+                        // game = new Chess(data.board);
+                        board.position(game.fen())
+                        console.log(game.turn())
+                    },
+                    dataType: "json"
+                });
+            }
+
+            updateStatus()
         };
         
         var promote_to = 'q'
@@ -146,29 +150,25 @@
             // illegal move
             if (move === null) return 'snapback';
             
-            updateStatus();
+            setTimeout(makeMCTSMove, 250);
         };
         
-        var onSnapEnd = function() 
-        {
-            if(game.turn() == 'b') 
-            { 
-                
-            }
+        var onSnapEnd = function() {
             board.position(game.fen());
+            updateStatus()
         }
         
-        var cfg = 
-        {
+        var cfg = {
             draggable: true,
             position: 'start',
             onDragStart: onDragStart,
             onDrop: onDrop,
             onSnapEnd: onSnapEnd
         }
+
         var board = ChessBoard('board1', cfg);
         
-        updateStatus();
+        setTimeout(makeMCTSMove, 250);
     };
     $(document).ready(newGame);
 </script>
