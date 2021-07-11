@@ -4,46 +4,44 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='chessboard-0.3.0.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></link>
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
-    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
-    integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.css">
-    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <!-- Latest compiled and minified JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
-    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 </head>
 <body>
-    <nav class="navbar navbar-default navbar-fixed-top">
-        <div class="container-fluid">
-            <h1 id="logo">SigmaZero</h1>
-        </div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="navbar-brand">SigmaZero</div>
     </nav>
-    <div class="container">
-        <div class="row">
+    <div class="container-fluid">
+        <div class="row d-flex align-items-center" style="height: 80%">
             <div class="col-xs-12 col-md-6">
-                <div id="mainWindow">
-                    <br>
+                <div id="mainWindow" class="d-flex justify-content-center">
                     <div id="board1" style="width: 550px"></div>
                 </div>
             </div>
             <div class="col-xs-12 col-md-6">
                 <div id="secondWindow">
-                    <div id="controls">
-                        <br><h3><b>Status:</b></h3>
-                        <h4><span id="status">White to move</span></h4>
+                    <div id="controls" class="d-flex flex-column">
+                        <div class="my-3">
+                            <h5 class="text-muted"><b>STATUS</b></h5>
+                            <h1><span id="status">White to move.</span></h1>
+                        </div>
                         <!-- <form class="form-inline"> -->
-                            <br><h4><b>Select number of iterations for MCTS:</b></h4>
-                            <select id="iterations">
+                        <div class="my-3 w-50">
+                            <h5 class="text-muted"><b>NUMBER OF ITERATIONS FOR MCTS</b></h5>
+                            <select class="form-control" id="iterations">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                                 <option value="100">100</option>
                                 <option value="200">200</option>
-                            </select><br><br>
-                            <button class="btn btn-default" id="reset" onclick="newGame()">New Game</button>
+                            </select>
+                        </div>
+                        <div class="my-5">
+                            <button class="btn btn-danger" id="reset" onclick="newGame()">NEW GAME</button>
+                        </div>
                         <!-- </form> -->
                     </div>
                 </div>
@@ -57,48 +55,39 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"></script>
 
 <script>
-    var newGame = function() 
-    {
-        var board, game = new Chess(),
-        statusEl = $('#status'),
-        fenEl = $('#fen'),
-        pgnEl = $('#pgn');
+    function newGame() {
+        var board, game = new Chess();
+        var statusEl = $('#status'), fenEl = $('#fen'), pgnEl = $('#pgn');
         var num_iter = document.getElementById("iterations").value;  
         var moveColor = 'White';
+
+        // TODO: select which piece to promote pawn to
+        const promote_to = 'q'
         
-        var onDragStart = function(source, piece, position, orientation) 
-        {
-            if (game.game_over() === true || (game.turn() === 'w' && piece.search(/^b/) !== -1) || (game.turn() === 'b')) 
-            {
+        function onDragStart(source, piece, position, orientation) {
+            if (game.game_over() === true || (game.turn() === 'w' && piece.search(/^b/) !== -1) || (game.turn() === 'b')) {
                 return false;
             }
         }
 
-        var updateStatus = function() {
-            console.log("updating status text", game.turn())
+        function updateStatus() {
             var status = '';
             
-            if (game.turn() === 'b') {
-                moveColor = 'Black';
-            }
-            if (game.turn() === 'w') {
-                moveColor = 'White'
-            }
+            if (game.turn() === 'b') moveColor = 'Black';
+            if (game.turn() === 'w') moveColor = 'White';
             
-            // check checkmate
-            if (game.in_checkmate() === true) {
-                status = 'Game over, ' + moveColor + ' is in checkmate.';
+            if (game.in_checkmate()) {
+                // check checkmate
+                status = `Game Over: ${moveColor} is in checkmate.`;
             }
-            // check draw
-            else if (game.in_draw() === true) {
-                status = 'Game over, draw';
-            }
-            else 
-            {
-                status = moveColor + ' to move';
+            else if (game.in_draw()) {
+                // check draw
+                status = 'Game Over: It\'s a draw.';
+            } else {
+                status = `${moveColor} to move.`
                 // check condition
-                if (game.in_check() === true) {
-                    status += ', ' + moveColor + ' is in check';
+                if (game.in_check()) {
+                    status = `${status} ${moveColor} is in check.`
                 }
             }
             
@@ -107,11 +96,10 @@
             pgnEl.html(game.pgn());
         }
         
-        var makeMCTSMove = function() 
-        {
+        function makeMCTSMove() {
             if (game.turn() === 'b') {
-                console.log(game.fen());
-                console.log(num_iter);
+                console.log("game FEN:", game.fen());
+                console.log("iterations:", num_iter);
                 $.ajax({
                     type: "POST",
                     async: false,
@@ -122,11 +110,9 @@
                         iterations: num_iter
                     }), 
                     success: function(data) {
-                        console.log(data)
+                        console.log("API data:", data)
                         game.move(data.move, { sloppy: true })
-                        // game = new Chess(data.board);
                         board.position(game.fen())
-                        console.log(game.turn())
                     },
                     dataType: "json"
                 });
@@ -135,11 +121,8 @@
             updateStatus()
         };
         
-        var promote_to = 'q'
-        // TODO: select which piece to promote pawn to
         
-        var onDrop = function(source, target) 
-        {
+        function onDrop(source, target) {
             // check legal
             var move = game.move({
                 from: source,
@@ -153,7 +136,7 @@
             setTimeout(makeMCTSMove, 250);
         };
         
-        var onSnapEnd = function() {
+        function onSnapEnd() {
             board.position(game.fen());
             updateStatus()
         }
