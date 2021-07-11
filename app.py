@@ -29,7 +29,7 @@ def best_mcts_move():
 
         print(chess_board)
 
-    return jsonify({'board': str(chess_board.fen())})
+    return jsonify({'board': str(chess_board.fen()), 'move': str(best_move)})
 
 
 if __name__ == '__main__':
